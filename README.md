@@ -104,6 +104,14 @@ dump.bin
 
 If no command is provided after a device is initialized, `flash_read` is the default command path.
 
+### Read live firmware info without writing a dump
+
+```powershell
+AsmTool.exe read_fw_info
+```
+
+This reads the controller flash into memory, scans it for MPTOOL-style firmware version candidates, and prints the detected firmware version information without creating `dump.bin`.
+
 ### Inspect a firmware binary
 
 ```powershell
