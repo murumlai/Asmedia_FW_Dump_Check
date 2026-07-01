@@ -1,12 +1,4 @@
-#region License
-/*
- * Copyright (C) 2019 Stefano Moioli <smxdev4@gmail.com>
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-#endregion
-﻿using System;
+using System;
 
 namespace AsmTool
 {
@@ -20,11 +12,11 @@ namespace AsmTool
 
 			IAsmIO io = AsmIOFactory.GetAsmIO();
 
-			Console.WriteLine("Unloading ASM Driver...");
+			Console.WriteLine("Unloading ASMEDIA Driver...");
 			io.UnloadAsmIODriver();
-			Console.WriteLine("Loading ASM Driver...");
+			Console.WriteLine("Loading ASMEDIA Driver...");
 			if(io.LoadAsmIODriver() != 1) {
-				Console.Error.WriteLine("Failed to load ASM IO Driver");
+				Console.Error.WriteLine("Failed to load ASMEDIA IO Driver");
 				return;
 			}
 

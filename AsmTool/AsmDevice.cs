@@ -1,12 +1,4 @@
-#region License
-/*
- * Copyright (C) 2019 Stefano Moioli <smxdev4@gmail.com>
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-#endregion
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -151,18 +143,18 @@ namespace AsmTool
 			}
 
 			var versionCandidates = AsmFirmware.FindFirmwareVersionCandidates(firmware);
-			os.WriteLine("==== Live Firmware Info ====");
+			os.WriteLine("==== Reading Firmware Info ====");
 			if (versionCandidates.Count > 0) {
 				var selected = versionCandidates[0];
 				os.WriteLine($"FW Version: {selected.RawValue}");
 				os.WriteLine($"FW Version Info: {selected.BuildDate}, marker: {selected.Marker}, version: {selected.Version}, offset: 0x{selected.Offset:X}, format: {selected.StorageFormat}");
-				os.WriteLine("FW Version Candidates:");
-				foreach (var candidate in versionCandidates.Take(10)) {
-					os.WriteLine(
-						$"  Offset 0x{candidate.Offset:X6}: {candidate.RawValue} " +
-						$"({candidate.BuildDate}, marker: {candidate.Marker}, version: {candidate.Version}, format: {candidate.StorageFormat})"
-					);
-				}
+				//os.WriteLine("FW Version Candidates:");
+				//foreach (var candidate in versionCandidates.Take(10)) {
+				//	os.WriteLine(
+				//		$"  Offset 0x{candidate.Offset:X6}: {candidate.RawValue} " +
+				//		$"({candidate.BuildDate}, marker: {candidate.Marker}, version: {candidate.Version}, format: {candidate.StorageFormat})"
+				//	);
+				//}
 			} else {
 				os.WriteLine("FW Version: not found");
 				os.WriteLine("FW Version Candidates: none found");

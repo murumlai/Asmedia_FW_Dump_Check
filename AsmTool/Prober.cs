@@ -1,12 +1,4 @@
-#region License
-/*
- * Copyright (C) 2019 Stefano Moioli <smxdev4@gmail.com>
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-#endregion
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -33,13 +25,13 @@ namespace AsmTool
 				for(uint j=0; j<PCI_DEV_MAX; j++) {
 					for(uint k=0; k<PCI_FUNC_MAX; k++) {
 						uint ident = io.PCI_Read_DWORD(i, j, k, 0);
-						Console.WriteLine($"bus:{i:X}, dev:{j:X}, func:{k:X} => {ident:X8}");
+						//Console.WriteLine($"bus:{i:X}, dev:{j:X}, func:{k:X} => {ident:X8}");
 						if (ident == 0xFFFFFFFF) {
 							continue;
 						}
 						uint dev_pid = (ident >> 16) & 0xFFFF;
 						uint dev_vid = (ident & 0xFFFF);
-						Console.WriteLine($"[bus:{i:X}, dev:{j:X}, func:{k:X}] {dev_vid:X4}:{dev_pid:X4}");
+						//Console.WriteLine($"[bus:{i:X}, dev:{j:X}, func:{k:X}] {dev_vid:X4}:{dev_pid:X4}");
 
 						if(dev_pid == pid) {
 							addr = new PCIAddress() {
