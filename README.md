@@ -1,8 +1,8 @@
 # Asmedia FW Dump Check
 
-ASMTool is a Windows-only .NET 8 command-line utility for PCI-based ASMedia USB controllers. It can dump controller flash contents, dump mapped controller memory, and read live firmware version information.
+ASMTool is a minimal Windows-only .NET 8 command-line utility for PCI-based ASMedia USB controllers. It supports only three read operations: reading live firmware version information, dumping controller flash, and dumping controller memory.
 
-This fork currently focuses on reading firmware information directly from ASMedia flash data without hardcoding firmware values. Fixed offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from device data.
+This fork focuses on reading firmware information directly from ASMedia flash data without hardcoding firmware values. Fixed offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from device data.
 
 Original upstream project: https://github.com/smx-smx/ASMTool
 
@@ -11,9 +11,15 @@ Original upstream project: https://github.com/smx-smx/ASMTool
 - Detects supported ASMedia PCI devices by product ID:
   - `0x2142` / ASM2142
   - `0x3142` / ASM3142
+- Supports only these switches:
+  - `read_fw_info`
+  - `mem_read`
+  - `flash_read`
 - Dumps the controller flash ROM to `dump.bin`.
 - Dumps controller memory to `mem.bin`.
 - Reads MPTOOL-style firmware version candidates directly from controller flash data.
+
+Removed features from the original ASMTool include firmware file inspection, firmware patching, Linux support, and unused memory-map/write helpers.
 
 ## Firmware version parsing
 
@@ -74,6 +80,30 @@ The Windows output is produced as an x86 executable because of the project confi
 
 Run commands from the directory containing the built executable and required native I/O files.
 
+```powershell
+AsmTool.exe <read_fw_info|mem_read|flash_read>
+```
+
+Running without a switch or with an unknown switch prints usage.
+
+### Read live firmware info without writing a dump
+
+```powershell
+AsmTool.exe read_fw_info
+```
+
+This reads the controller flash into memory, scans it for MPTOOL-style firmware version candidates, and prints the detected firmware version information without creating `dump.bin`.
+
+Example output:
+
+```text
+==== Live Firmware Info ====
+FW Version: 210225700240
+FW Version Info: 2021-02-25, marker: 70, version: 0240, offset: 0xC9, format: binary BCD
+FW Version Candidates:
+  Offset 0x0000C9: 210225700240 (2021-02-25, marker: 70, version: 0240, format: binary BCD)
+```
+
 ### Dump flash firmware
 
 ```powershell
@@ -84,26 +114,6 @@ This reads the controller flash in 8-byte chunks and writes a 128 KiB dump to:
 
 ```text
 dump.bin
-```
-
-Only the documented switches are supported. Running without a switch prints usage.
-
-### Read live firmware info without writing a dump
-
-```powershell
-AsmTool.exe read_fw_info
-```
-
-This reads the controller flash into memory, scans it for MPTOOL-style firmware version candidates, and prints the detected firmware version information without creating `dump.bin`.
-
-Example `read_fw_info` output includes:
-
-```text
-==== Live Firmware Info ====
-FW Version: 210225700240
-FW Version Info: 2021-02-25, marker: 70, version: 0240, offset: 0xC9, format: binary BCD
-FW Version Candidates:
-  Offset 0x0000C9: 210225700240 (2021-02-25, marker: 70, version: 0240, format: binary BCD)
 ```
 
 ### Dump mapped memory
