@@ -191,6 +191,50 @@ namespace AsmTool
 			return true;
 		}
 
+		private byte[]? ReadFirmwareBytes() {
+			uint num_reads = FIRMWARE_SIZE / 8;
+			var firmware = new byte[(int)FIRMWARE_SIZE];
+
+			for (uint i = 0; i < num_reads; i++) {
+				var offset = i * 8;
+				if (!SPIReadQword(offset, out ulong qword)) {
+					Console.WriteLine($"Invalid SPI Read at offset {offset}");
+					return null;
+				}
+
+				BitConverter.TryWriteBytes(firmware.AsSpan((int)offset, 8), qword);
+			}
+
+			return firmware;
+		}
+
+		public bool PrintLiveFirmwareInfo(TextWriter os) {
+			var firmware = ReadFirmwareBytes();
+			if (firmware == null) {
+				return false;
+			}
+
+			var versionCandidates = AsmFirmware.FindFirmwareVersionCandidates(firmware);
+			os.WriteLine("==== Live Firmware Info ====");
+			if (versionCandidates.Count > 0) {
+				var selected = versionCandidates[0];
+				os.WriteLine($"FW Version: {selected.RawValue}");
+				os.WriteLine($"FW Version Info: {selected.BuildDate}, marker: {selected.Marker}, version: {selected.Version}, offset: 0x{selected.Offset:X}, format: {selected.StorageFormat}");
+				os.WriteLine("FW Version Candidates:");
+				foreach (var candidate in versionCandidates.Take(10)) {
+					os.WriteLine(
+						$"  Offset 0x{candidate.Offset:X6}: {candidate.RawValue} " +
+						$"({candidate.BuildDate}, marker: {candidate.Marker}, version: {candidate.Version}, format: {candidate.StorageFormat})"
+					);
+				}
+			} else {
+				os.WriteLine("FW Version: not found");
+				os.WriteLine("FW Version Candidates: none found");
+			}
+
+			return true;
+		}
+
 		public bool SPIReadQword(uint offset, out ulong qword) {
 			qword = 0;
 

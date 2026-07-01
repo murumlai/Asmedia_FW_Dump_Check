@@ -130,7 +130,7 @@ namespace AsmTool
 			return true;
 		}
 
-		private List<FirmwareVersionInfo> FindFirmwareVersionCandidates() {
+		public static List<FirmwareVersionInfo> FindFirmwareVersionCandidates(ReadOnlyMemory<byte> data) {
 			var candidates = new List<FirmwareVersionInfo>();
 
 			void AddCandidate(FirmwareVersionInfo candidate) {
@@ -143,18 +143,20 @@ namespace AsmTool
 			}
 
 			void TryAddBinaryCandidate(int offset) {
-				if (offset < 0 || offset + 6 > Span.Length) {
+				if (offset < 0 || offset + 6 > data.Length) {
 					return;
 				}
 
+				var span = data.Span;
+
 				if (TryBuildFirmwareVersionInfo(
 					offset,
-					Span[offset],
-					Span[offset + 1],
-					Span[offset + 2],
-					Span[offset + 3],
-					Span[offset + 4],
-					Span[offset + 5],
+					span[offset],
+					span[offset + 1],
+					span[offset + 2],
+					span[offset + 3],
+					span[offset + 4],
+					span[offset + 5],
 					"binary BCD",
 					out var info)) {
 					AddCandidate(info);
@@ -162,11 +164,11 @@ namespace AsmTool
 			}
 
 			void TryAddAsciiCandidate(int offset) {
-				if (offset < 0 || offset + 12 > Span.Length) {
+				if (offset < 0 || offset + 12 > data.Length) {
 					return;
 				}
 
-				var raw = Encoding.ASCII.GetString(Span.Slice(offset, 12));
+				var raw = Encoding.ASCII.GetString(data.Span.Slice(offset, 12));
 				if (!raw.All(char.IsDigit)) {
 					return;
 				}
@@ -196,15 +198,19 @@ namespace AsmTool
 			TryAddBinaryCandidate(0xB9);
 			TryAddAsciiCandidate(0xB9);
 
-			for (var offset = 0; offset <= Span.Length - 6; offset++) {
+			for (var offset = 0; offset <= data.Length - 6; offset++) {
 				TryAddBinaryCandidate(offset);
 			}
 
-			for (var offset = 0; offset <= Span.Length - 12; offset++) {
+			for (var offset = 0; offset <= data.Length - 12; offset++) {
 				TryAddAsciiCandidate(offset);
 			}
 
 			return candidates;
+		}
+
+		private List<FirmwareVersionInfo> FindFirmwareVersionCandidates() {
+			return FindFirmwareVersionCandidates(Span.ToArray());
 		}
 
 		private FirmwareVersionInfo? GetBestFirmwareVersionInfo() {
@@ -415,7 +421,7 @@ namespace AsmTool
 			mf.Dispose();
 		}
 
-		private readonly record struct FirmwareVersionInfo(
+		public readonly record struct FirmwareVersionInfo(
 			int Offset,
 			string RawValue,
 			string BuildDate,

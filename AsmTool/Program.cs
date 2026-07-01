@@ -32,6 +32,9 @@ namespace AsmTool
 
 			if (args.Length > 0) {
 				switch (args[0]) {
+					case "read_fw_info":
+						dev.PrintLiveFirmwareInfo(Console.Out);
+						break;
 					case "fw_set_type":
 						{
 							var patchedFile = Path.Combine(
