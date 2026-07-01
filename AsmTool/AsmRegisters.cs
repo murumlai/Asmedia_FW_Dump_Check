@@ -12,12 +12,7 @@ namespace AsmTool
 	/// byte0 of internal register
 	/// </summary>
 	public enum ASMIOCommand : uint {
-		Read = 0x40,
-		SectorErase = 0x30,
-		SectorWrite = 0x1E,
-		Write = 0x23,
-		// write status register
-		WriteSR = 0x4C
+		Read = 0x40
 	}
 
 	public enum ASMIOFunction : uint {

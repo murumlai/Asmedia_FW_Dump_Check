@@ -7,14 +7,9 @@
  */
 #endregion
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AsmTool
 {
@@ -27,11 +22,6 @@ namespace AsmTool
 		private readonly Prober prb;
 		private readonly PCIAddress pcidev;
 
-		/// <summary>
-		/// base address register
-		/// </summary>
-		private readonly PCIBar bar;
-
 		private readonly IAsmIO io;
 
 		public AsmDevice(IAsmIO io) {
@@ -43,22 +33,6 @@ namespace AsmTool
 				throw new Exception($"No ASMedia device detected!");
 
 			Console.WriteLine("Found ASMedia IC!");
-			uint barValue = PCIReadWord(0x10);
-			Console.WriteLine($"BAR: {barValue:X8}");
-
-			this.bar = new PCIBar(barValue);
-		}
-
-		public AsmMemory NewMemoryMap(uint offset, uint size) {
-			return new AsmMemory(io, this.bar.BaseAddress + offset, size);
-		}
-
-		public uint PCIReadWord(uint offset) {
-			return io.PCI_Read_DWORD(pcidev.Bus, pcidev.Device, pcidev.Function, offset);
-		}
-
-		public byte PCIReadByte(uint offset) {
-			return io.PCI_Read_BYTE(pcidev.Bus, pcidev.Device, pcidev.Function, offset);
 		}
 
 		private static byte[] BuildAsmCommand(
@@ -76,45 +50,7 @@ namespace AsmTool
 			);
 		}
 
-		private bool WaitWrite() {
-			if(io.Wait_Write_Ready(pcidev.Bus, pcidev.Device, pcidev.Function) < 0) {
-				return false;
-			}
-			return true;
-		}
-		
-		public unsafe bool WriteMemory(uint address, byte[] bytes) {
-			var reg = BuildAsmCommand(ASMIOCommand.Write, ASMIOFunction.Memory, (byte)bytes.Length);
-
-
-			var span = bytes.AsSpan();
-			while(span.Length > 0) {
-				var length = Math.Min(8, span.Length);
-
-				ulong value = 0;
-				for (int i = 0; i < length; i++) {
-					value |= (uint)(span[i] << (i * 8));
-				}
-
-				span = span.Slice(length);
-
-				uint word0 = (uint)(value >> 0);
-				uint word1 = (uint)(value >> 32);
-				Trace.WriteLine($"W0 is {word0}, W1 is {word1}");
-
-				if (WriteRegister(reg, address, word0, word1) < 0) {
-					return false;
-				}
-				if (!WaitWrite()) {
-					return false;
-				}
-			}
-						
-
-			return true;
-		}
-
-		public unsafe byte[]? ReadMemory(uint address) {
+		private unsafe byte[]? ReadMemory(uint address) {
 			byte wordSize = 4;
 			var reg = BuildAsmCommand(ASMIOCommand.Read, ASMIOFunction.Memory, wordSize);
 			if (WriteRegister(reg, address) < 0) {
@@ -135,7 +71,7 @@ namespace AsmTool
 			return word;
 		}
 
-		public unsafe bool ReadPacketSmall(int wordSize, byte[] data) {
+		private unsafe bool ReadPacketSmall(int wordSize, byte[] data) {
 			if (io.Wait_Read_Ready(pcidev.Bus, pcidev.Device, pcidev.Function) < 0) {
 				Console.WriteLine("Wait_Read_Ready failed!");
 				return false;
@@ -151,7 +87,7 @@ namespace AsmTool
 			return true;
 		}
 
-		public unsafe bool ReadPacket(uint wordSize, out byte[]? data) {
+		private unsafe bool ReadPacket(uint wordSize, out byte[]? data) {
 			data = null;
 
 			if (io.Wait_Read_Ready(pcidev.Bus, pcidev.Device, pcidev.Function) < 0) {
@@ -235,7 +171,7 @@ namespace AsmTool
 			return true;
 		}
 
-		public bool SPIReadQword(uint offset, out ulong qword) {
+		private bool SPIReadQword(uint offset, out ulong qword) {
 			qword = 0;
 
 			byte wordSize = 0x8;

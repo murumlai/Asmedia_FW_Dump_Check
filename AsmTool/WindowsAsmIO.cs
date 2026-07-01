@@ -7,11 +7,7 @@
  */
 #endregion
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AsmTool
 {
@@ -31,9 +27,6 @@ namespace AsmTool
 
 		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_UnloadAsmIODriver@0", ExactSpelling = true)]
 		public static extern UInt32 UnloadAsmIODriver();
-
-		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_ReadMEM@12", ExactSpelling = true)]
-		public static extern UInt32 ReadMEM(UInt32 address, UInt32 size, IntPtr bufPtr);
 
 		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_PCI_Read_BYTE@16", ExactSpelling = true)]
 		public static extern byte PCI_Read_BYTE(UInt32 busNumber, UInt32 deviceNumber, UInt32 functionNumber, UInt32 offset);
@@ -76,34 +69,20 @@ namespace AsmTool
 			/* a8 */ UInt32 cmd_dat2 //ioctl arg 10
 		);
 
-		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_Wait_Write_Ready@12", ExactSpelling = true)]
-		public static extern UInt32 Wait_Write_Ready(UInt32 busNumber, UInt32 deviceNumber, UInt32 functionNumber);
-
 		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_Wait_Read_Ready@12", ExactSpelling = true)]
 		public static extern UInt32 Wait_Read_Ready(UInt32 busNumber, UInt32 deviceNumber, UInt32 functionNumber);
-
-
-		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_MapAsmIO@8", ExactSpelling = true)]
-		public static extern UInt32 MapAsmIO(UInt32 address, UInt32 size);
-
-		[DllImport("asmiodll", CallingConvention = CallingConvention.StdCall, EntryPoint = "_UnmapAsmIO@8", ExactSpelling = true)]
-		public static extern UInt32 UnmapAsmIO(UInt32 address, UInt32 size);
 	}
 
 	public class WindowsAsmIO : IAsmIO
 	{
 		public uint LoadAsmIODriver() => AsmIODll.LoadAsmIODriver();
-		public uint MapAsmIO(uint address, uint size) => AsmIODll.MapAsmIO(address, size);
 		public byte PCI_Read_BYTE(uint busNumber, uint deviceNumber, uint functionNumber, uint offset) => AsmIODll.PCI_Read_BYTE(busNumber, deviceNumber, functionNumber, offset);
 		public uint PCI_Read_DWORD(uint busNumber, uint deviceNumber, uint functionNumber, uint offset) => AsmIODll.PCI_Read_DWORD(busNumber, deviceNumber, functionNumber, offset);
 		public uint PCI_Write_BYTE(uint busNumber, uint deviceNumber, uint functionNumber, uint offset, byte value) => AsmIODll.PCI_Write_BYTE(busNumber, deviceNumber, functionNumber, offset, value);
 
 		public uint ReadCMD(uint busNumber, uint deviceNumber, uint functionNumber, IntPtr bufPtr) => AsmIODll.ReadCMD(busNumber, deviceNumber, functionNumber, bufPtr);
-		public uint ReadMEM(uint address, uint size, IntPtr bufPtr) => AsmIODll.ReadMEM(address, size, bufPtr);
 		public uint UnloadAsmIODriver() => AsmIODll.UnloadAsmIODriver();
-		public uint UnmapAsmIO(uint address, uint size) => AsmIODll.UnmapAsmIO(address, size);
 		public uint Wait_Read_Ready(uint busNumber, uint deviceNumber, uint functionNumber) => AsmIODll.Wait_Read_Ready(busNumber, deviceNumber, functionNumber);
-		public uint Wait_Write_Ready(uint busNumber, uint deviceNumber, uint functionNumber) => AsmIODll.Wait_Write_Ready(busNumber, deviceNumber, functionNumber);
 		public uint WriteCmdALL(uint busNumber, uint deviceNumber, uint functionNumber, uint cmd_reg_byte0, uint cmd_reg_byte1, uint cmd_reg_byte2, uint cmd_dat0, uint cmd_dat1, uint cmd_dat2) {
 			return AsmIODll.WriteCmdALL(
 				busNumber, deviceNumber, functionNumber,

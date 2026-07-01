@@ -7,17 +7,17 @@
  */
 #endregion
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AsmTool
 {
 	class Program
 	{
 		static void Main(string[] args) {
+			if (args.Length != 1) {
+				PrintUsage();
+				return;
+			}
+
 			IAsmIO io = AsmIOFactory.GetAsmIO();
 
 			Console.WriteLine("Unloading ASM Driver...");
@@ -30,23 +30,27 @@ namespace AsmTool
 
 			AsmDevice dev = new AsmDevice(io);
 
-			if (args.Length > 0) {
-				switch (args[0]) {
-					case "read_fw_info":
-						dev.PrintLiveFirmwareInfo(Console.Out);
-						break;
-					case "mem_read":
-						dev.DumpMemory();
-						break;
-					case "flash_read":
-					default:
-						Console.WriteLine("Dumping firmware...");
-						dev.DumpFirmware("dump.bin");
-						break;
-				}
+			switch (args[0]) {
+				case "read_fw_info":
+					dev.PrintLiveFirmwareInfo(Console.Out);
+					break;
+				case "mem_read":
+					dev.DumpMemory();
+					break;
+				case "flash_read":
+					Console.WriteLine("Dumping firmware...");
+					dev.DumpFirmware("dump.bin");
+					break;
+				default:
+					PrintUsage();
+					break;
 			}
 
 			io.UnloadAsmIODriver();
+		}
+
+		private static void PrintUsage() {
+			Console.WriteLine("Usage: AsmTool.exe <read_fw_info|mem_read|flash_read>");
 		}
 	}
 }

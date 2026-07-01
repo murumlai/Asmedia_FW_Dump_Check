@@ -1,8 +1,8 @@
 # Asmedia FW Dump Check
 
-ASMTool is a Windows-only .NET 8 command-line utility for PCI-based ASMedia USB controllers. It can dump controller flash contents, dump mapped controller memory, and inspect ASMedia firmware binary files.
+ASMTool is a Windows-only .NET 8 command-line utility for PCI-based ASMedia USB controllers. It can dump controller flash contents, dump mapped controller memory, and read live firmware version information.
 
-This fork currently focuses on reading and validating firmware information from ASMedia dump files without hardcoding firmware values. Fixed binary offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from the binary data.
+This fork currently focuses on reading firmware information directly from ASMedia flash data without hardcoding firmware values. Fixed offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from device data.
 
 Original upstream project: https://github.com/smx-smx/ASMTool
 
@@ -13,13 +13,7 @@ Original upstream project: https://github.com/smx-smx/ASMTool
   - `0x3142` / ASM3142
 - Dumps the controller flash ROM to `dump.bin`.
 - Dumps controller memory to `mem.bin`.
-- Reads firmware file metadata:
-  - header checksum
-  - body checksum
-  - firmware signature
-  - footer signature
-  - MPTOOL-style firmware version candidates
-  - live chip revision bytes from the detected controller
+- Reads MPTOOL-style firmware version candidates directly from controller flash data.
 
 ## Firmware version parsing
 
@@ -44,7 +38,7 @@ Meaning:
 └──┴──┴────────── build date: 2021-02-25
 ```
 
-The parser scans the firmware binary for valid binary-BCD and ASCII version candidates. It reports the selected version, its offset, and additional candidates found in the file. Firmware values are not hardcoded.
+The parser scans flash data for valid binary-BCD and ASCII version candidates. It reports the selected version, its offset, and additional candidates found in the data. Firmware values are not hardcoded.
 
 ## Requirements
 
@@ -92,7 +86,7 @@ This reads the controller flash in 8-byte chunks and writes a 128 KiB dump to:
 dump.bin
 ```
 
-If no command is provided after a device is initialized, `flash_read` is the default command path.
+Only the documented switches are supported. Running without a switch prints usage.
 
 ### Read live firmware info without writing a dump
 
@@ -102,31 +96,15 @@ AsmTool.exe read_fw_info
 
 This reads the controller flash into memory, scans it for MPTOOL-style firmware version candidates, and prints the detected firmware version information without creating `dump.bin`.
 
-### Inspect a firmware binary
-
-```powershell
-AsmTool.exe fw_info C:\path\to\dump.bin
-```
-
-Example output includes:
+Example `read_fw_info` output includes:
 
 ```text
-==== File Info ====
-File Checksum [header]: 0x9B (expected: 0x9B)
-File Checksum   [body]: 0xD1 (expected: 0xD1)
-Checksum OK
-Signature: 2214A_RCFG
+==== Live Firmware Info ====
 FW Version: 210225700240
 FW Version Info: 2021-02-25, marker: 70, version: 0240, offset: 0xC9, format: binary BCD
-Footer: 2214A_FW
 FW Version Candidates:
   Offset 0x0000C9: 210225700240 (2021-02-25, marker: 70, version: 0240, format: binary BCD)
-==== Actual Chip Info ====
-Chip Rev0: 0x53
-Chip Rev1: 0x00
 ```
-
-Note: `fw_info` currently initializes the ASMedia device before parsing the file because it also prints live chip revision information.
 
 ### Dump mapped memory
 
@@ -139,15 +117,6 @@ This writes a memory dump to:
 ```text
 mem.bin
 ```
-
-### Patch firmware chip type metadata
-
-```powershell
-AsmTool.exe fw_set_type C:\path\to\firmware.bin 2142
-AsmTool.exe fw_set_type C:\path\to\firmware.bin 3142
-```
-
-This creates a patched copy next to the input file using the suffix `_patched.bin`.
 
 ## Important notes
 
