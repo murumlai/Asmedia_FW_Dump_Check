@@ -4,6 +4,8 @@ ASMTool is a .NET 8 command-line utility for PCI-based ASMedia USB controllers. 
 
 This fork currently focuses on reading and validating firmware information from ASMedia dump files without hardcoding firmware values. Fixed binary offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from the binary data.
 
+Original upstream project: https://github.com/smx-smx/ASMTool
+
 ## Current capabilities
 
 - Detects supported ASMedia PCI devices by product ID:
