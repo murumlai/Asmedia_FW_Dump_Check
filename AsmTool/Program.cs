@@ -50,7 +50,12 @@ namespace AsmTool
 		}
 
 		private static void PrintUsage() {
-			Console.WriteLine("Usage: AsmTool.exe <read_fw_info|mem_read|flash_read>");
+			Console.WriteLine("Usage: AsmTool.exe <command>");
+			Console.WriteLine();
+			Console.WriteLine("Commands:");
+			Console.WriteLine("  read_fw_info  Read live firmware version info from controller flash without creating dump.bin.");
+			Console.WriteLine("  mem_read      Dump controller memory to mem.bin.");
+			Console.WriteLine("  flash_read    Dump controller SPI flash firmware ROM to dump.bin.");
 		}
 	}
 }
