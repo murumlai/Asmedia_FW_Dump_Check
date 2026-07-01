@@ -1,6 +1,6 @@
 # Asmedia FW Dump Check
 
-ASMTool is a .NET 8 command-line utility for PCI-based ASMedia USB controllers. It can dump controller flash contents, dump mapped controller memory, and inspect ASMedia firmware binary files.
+ASMTool is a Windows-only .NET 8 command-line utility for PCI-based ASMedia USB controllers. It can dump controller flash contents, dump mapped controller memory, and inspect ASMedia firmware binary files.
 
 This fork currently focuses on reading and validating firmware information from ASMedia dump files without hardcoding firmware values. Fixed binary offsets, signatures, and format rules may be used, but firmware version/date/marker values are read from the binary data.
 
@@ -55,7 +55,7 @@ The parser scans the firmware binary for valid binary-BCD and ASCII version cand
 
 The Windows build targets `x86` because the native ASMedia I/O DLL uses 32-bit interop.
 
-### Runtime requirements on Windows
+### Runtime requirements
 
 The tool requires ASMedia I/O driver components at runtime:
 
@@ -65,16 +65,6 @@ The tool requires ASMedia I/O driver components at runtime:
 Place the required native files next to the built `AsmTool.exe`.
 
 Administrator privileges may be required because the tool loads a driver and accesses PCI configuration/device registers.
-
-### Runtime requirements on Linux
-
-The repository includes a native Linux I/O source file:
-
-```powershell
-gcc -shared -o libAsmIoLinux.so -fPIC AsmTool/Linux/AsmIOLinux.c
-```
-
-Place the resulting `libAsmIoLinux.so` next to the built ASMTool executable.
 
 ## Build
 

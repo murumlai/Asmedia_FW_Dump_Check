@@ -7,19 +7,16 @@
  */
 #endregion
 using System;
-using System.Runtime.InteropServices;
 namespace AsmTool
 {
 	public class AsmIOFactory
 	{
 		public static IAsmIO GetAsmIO() {
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-				return new LinuxAsmIO();
-			} else if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+			if (OperatingSystem.IsWindows()) {
 				return new WindowsAsmIO();
-			} else {
-				throw new NotSupportedException("This Operating System is currently not supported");
 			}
+
+			throw new NotSupportedException("ASMTool is supported on Windows only");
 		}
 	}
 }
