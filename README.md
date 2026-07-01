@@ -17,7 +17,7 @@ Original upstream project: https://github.com/smx-smx/ASMTool
   - `flash_read`
 - Dumps the controller flash ROM to `dump.bin`.
 - Dumps controller memory to `mem.bin`.
-- Reads MPTOOL-style firmware version candidates directly from controller flash data.
+- Reads MPTOOL-style firmware version candidates directly from controller flash data and prints the selected match.
 
 Removed features from the original ASMTool include firmware file inspection, firmware patching, Linux support, and unused memory-map/write helpers.
 
@@ -44,7 +44,7 @@ Meaning:
 └──┴──┴────────── build date: 2021-02-25
 ```
 
-The parser scans flash data for valid binary-BCD and ASCII version candidates. It reports the selected version, its offset, and additional candidates found in the data. Firmware values are not hardcoded.
+The parser scans flash data for valid binary-BCD and ASCII version candidates using marker values `50` and `70`. It prints the selected version, its offset, and storage format. Firmware values are not hardcoded.
 
 ## Requirements
 
@@ -97,11 +97,9 @@ This reads the controller flash into memory, scans it for MPTOOL-style firmware 
 Example output:
 
 ```text
-==== Live Firmware Info ====
+==== Reading Firmware Info ====
 FW Version: 210225700240
 FW Version Info: 2021-02-25, marker: 70, version: 0240, offset: 0xC9, format: binary BCD
-FW Version Candidates:
-  Offset 0x0000C9: 210225700240 (2021-02-25, marker: 70, version: 0240, format: binary BCD)
 ```
 
 ### Dump flash firmware
@@ -140,4 +138,4 @@ ASMedia controller firmware interfaces can potentially write code to the device.
 
 ## License
 
-The original source files include MPL-2.0 license headers. See the file headers for licensing details.
+This fork is based on the original upstream ASMTool project, which was distributed under MPL-2.0 licensing terms.
