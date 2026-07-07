@@ -26,7 +26,7 @@ Removed features from the original ASMTool include firmware file inspection, fir
 ASMedia MPTOOL-style firmware versions are parsed as a 12-digit value:
 
 ```text
-YYMMDDMMVVVV
+YYMMDD<MK>VVVV
 ```
 
 Example:
