@@ -23,28 +23,31 @@ Removed features from the original ASMTool include firmware file inspection, fir
 
 ## Firmware version parsing
 
-ASMedia MPTOOL-style firmware versions are parsed as a 12-digit value:
+ASMedia MPTOOL-style firmware versions are parsed as a fixed prefix plus a variable-length version:
 
 ```text
-YYMMDD<MK>VVVV
+YYMMDD<MK><VERSION>
 ```
 
-Example:
+The build date (6 chars) and marker (2 chars) are fixed width. The version portion is variable length, and the whole value is capped at 13 characters (so the version is up to 5 characters).
+
+Examples:
 
 ```text
-210225700240
+210225700240      (older, 12 chars, version 0240)
+23080270f8501     (newer, 13 chars, version f8501)
 ```
 
 Meaning:
 
 ```text
 21 02 25 70 02 40
-│  │  │  │  └──── firmware version: 0240
+│  │  │  │  └──── firmware version: 0240 (variable length, up to 5 chars)
 │  │  │  └─────── firmware generation/update marker: 70
 └──┴──┴────────── build date: 2021-02-25
 ```
 
-The parser scans flash data for valid binary-BCD and ASCII version candidates using marker values `50` and `70`. It prints the selected version, its offset, and storage format. Firmware values are not hardcoded.
+The parser scans flash data for valid binary-BCD and ASCII version candidates using marker values `50` and `70`. The version portion is read until a natural terminator (non-hex character, or padding/non-BCD byte) and is capped so the full value never exceeds 13 characters. It prints the selected version, its offset, and storage format. Firmware values are not hardcoded.
 
 ## Requirements
 
