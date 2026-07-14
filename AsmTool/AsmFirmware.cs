@@ -7,11 +7,13 @@ namespace AsmTool
 {
 	public static class AsmFirmware
 	{
-		// Full firmware value is build date (6 chars) + marker (2 chars) + version.
-		private const int MaxFirmwareValueLength = 13;
+		// Full firmware value is build date (6 chars) + marker (2 chars) + version (4 chars).
+		private const int FirmwareValueLength = 12;
 		private const int BuildDateLength = 6;
 		private const int MarkerLength = 2;
-		private const int MaxVersionLength = MaxFirmwareValueLength - BuildDateLength - MarkerLength;
+		private const int VersionLength = FirmwareValueLength - BuildDateLength - MarkerLength;
+		private const int MinimumFirmwareBuildYear = 2020;
+		private const int FirmwareVersionMetadataOffset = 0xB9;
 
 		private static bool IsBcd(byte value) {
 			return ((value >> 4) <= 9) && ((value & 0x0F) <= 9);
@@ -21,8 +23,12 @@ namespace AsmTool
 			return ((value >> 4) * 10) + (value & 0x0F);
 		}
 
-		private static bool TryFormatBuildDate(byte yearByte, byte monthByte, byte dayByte, out string buildDate) {
-			buildDate = string.Empty;
+		private static bool IsFirmwareMarker(byte value) {
+			return value == 0x50 || value == 0x70;
+		}
+
+		private static bool TryGetBuildDate(byte yearByte, byte monthByte, byte dayByte, out DateTime buildDate) {
+			buildDate = default;
 
 			if (!IsBcd(yearByte) || !IsBcd(monthByte) || !IsBcd(dayByte)) {
 				return false;
@@ -32,18 +38,55 @@ namespace AsmTool
 			var month = BcdToInt(monthByte);
 			var day = BcdToInt(dayByte);
 
+			if (year < MinimumFirmwareBuildYear || year > DateTime.UtcNow.Year + 1) {
+				return false;
+			}
+
 			try {
-				_ = new DateTime(year, month, day);
+				buildDate = new DateTime(year, month, day);
 			} catch {
 				return false;
 			}
 
-			buildDate = $"{year:D4}-{month:D2}-{day:D2}";
 			return true;
 		}
 
-		private static bool IsHexDigit(char c) {
-			return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+		private static bool TryFormatBuildDate(byte yearByte, byte monthByte, byte dayByte, out string buildDate) {
+			buildDate = string.Empty;
+
+			if (!TryGetBuildDate(yearByte, monthByte, dayByte, out var date)) {
+				return false;
+			}
+
+			buildDate = $"{date.Year:D4}-{date.Month:D2}-{date.Day:D2}";
+			return true;
+		}
+
+		private static int GetFormatPriority(string storageFormat) {
+			return storageFormat switch {
+				"binary BCD" => 0,
+				"binary BCD little-endian" => 1,
+				"ASCII" => 2,
+				_ => 3,
+			};
+		}
+
+		private static int GetOffsetPriority(int offset) {
+			return offset == FirmwareVersionMetadataOffset ? 0 : 1;
+		}
+
+		private static bool IsAsciiDigit(byte value) {
+			return value >= (byte)'0' && value <= (byte)'9';
+		}
+
+		private static bool IsAsciiHexDigit(byte value) {
+			return IsAsciiDigit(value) ||
+				(value >= (byte)'a' && value <= (byte)'f') ||
+				(value >= (byte)'A' && value <= (byte)'F');
+		}
+
+		private static byte AsciiDigitsToBcd(byte tens, byte ones) {
+			return (byte)(((tens - (byte)'0') << 4) | (ones - (byte)'0'));
 		}
 
 		public static List<FirmwareVersionInfo> FindFirmwareVersionCandidates(ReadOnlyMemory<byte> data) {
@@ -58,9 +101,9 @@ namespace AsmTool
 				}
 			}
 
-			// Layout: build date (3 BCD bytes) + marker (1 byte, 0x50/0x70) + version (remaining BCD bytes, variable length).
+			// Layout: build date (3 BCD bytes) + marker (1 BCD byte) + version (2 hex bytes).
 			void TryAddBinaryCandidate(int offset) {
-				if (offset < 0 || offset + 4 > data.Length) {
+				if (offset < 0 || offset + 6 > data.Length) {
 					return;
 				}
 
@@ -69,8 +112,10 @@ namespace AsmTool
 				var monthByte = span[offset + 1];
 				var dayByte = span[offset + 2];
 				var markerByte = span[offset + 3];
+				var versionByte1 = span[offset + 4];
+				var versionByte2 = span[offset + 5];
 
-				if (markerByte != 0x50 && markerByte != 0x70) {
+				if (!IsFirmwareMarker(markerByte)) {
 					return;
 				}
 
@@ -78,92 +123,91 @@ namespace AsmTool
 					return;
 				}
 
-				// Consume the remaining version bytes, stopping at padding/non-BCD bytes.
-				// The whole value is capped at MaxFirmwareValueLength chars (date 6 + marker 2 + version).
-				var versionBuilder = new StringBuilder();
-				for (var p = offset + 4; p < data.Length; p++) {
-					var b = span[p];
-					if (b == 0x00 || b == 0xFF || !IsBcd(b)) {
-						break;
-					}
-
-					if (versionBuilder.Length + 2 > MaxVersionLength) {
-						break;
-					}
-
-					versionBuilder.Append($"{b:X2}");
-				}
-
-				if (versionBuilder.Length == 0) {
-					return;
-				}
-
-				var version = versionBuilder.ToString();
+				var version = $"{versionByte1:X2}{versionByte2:X2}";
 				var raw = $"{yearByte:X2}{monthByte:X2}{dayByte:X2}{markerByte:X2}{version}";
 				AddCandidate(new FirmwareVersionInfo(offset, raw, buildDate, $"{markerByte:X2}", version, "binary BCD"));
 			}
 
-			// Layout: build date (6 digits) + marker (2 chars, "50"/"70") + version (remaining hex chars, variable length).
+			// Layout: version (2 hex bytes) + marker (1 BCD byte) + build date (day/month/year BCD bytes).
+			void TryAddReverseBinaryCandidate(int offset) {
+				if (offset < 0 || offset + 6 > data.Length) {
+					return;
+				}
+
+				var span = data.Span;
+				var versionByte2 = span[offset];
+				var versionByte1 = span[offset + 1];
+				var markerByte = span[offset + 2];
+				var dayByte = span[offset + 3];
+				var monthByte = span[offset + 4];
+				var yearByte = span[offset + 5];
+
+				if (!IsFirmwareMarker(markerByte)) {
+					return;
+				}
+
+				if (!TryFormatBuildDate(yearByte, monthByte, dayByte, out var buildDate)) {
+					return;
+				}
+
+				var version = $"{versionByte1:X2}{versionByte2:X2}";
+				var raw = $"{yearByte:X2}{monthByte:X2}{dayByte:X2}{markerByte:X2}{version}";
+				AddCandidate(new FirmwareVersionInfo(offset, raw, buildDate, $"{markerByte:X2}", version, "binary BCD little-endian"));
+			}
+
+			// Layout: build date (6 digits) + marker (2 digits) + version (4 hex digits).
 			void TryAddAsciiCandidate(int offset) {
-				if (offset < 0 || offset + 8 > data.Length) {
+				if (offset < 0 || offset + FirmwareValueLength > data.Length) {
 					return;
 				}
 
 				var span = data.Span;
 
-				for (var i = 0; i < 6; i++) {
-					if (!char.IsDigit((char)span[offset + i])) {
+				for (var i = 0; i < BuildDateLength + MarkerLength; i++) {
+					if (!IsAsciiDigit(span[offset + i])) {
 						return;
 					}
 				}
 
-				var yearByte = Convert.ToByte($"{(char)span[offset]}{(char)span[offset + 1]}", 16);
-				var monthByte = Convert.ToByte($"{(char)span[offset + 2]}{(char)span[offset + 3]}", 16);
-				var dayByte = Convert.ToByte($"{(char)span[offset + 4]}{(char)span[offset + 5]}", 16);
-
-				var markerText = $"{(char)span[offset + 6]}{(char)span[offset + 7]}";
-				if (markerText != "50" && markerText != "70") {
-					return;
+				for (var i = BuildDateLength + MarkerLength; i < FirmwareValueLength; i++) {
+					if (!IsAsciiHexDigit(span[offset + i])) {
+						return;
+					}
 				}
+
+				var yearByte = AsciiDigitsToBcd(span[offset], span[offset + 1]);
+				var monthByte = AsciiDigitsToBcd(span[offset + 2], span[offset + 3]);
+				var dayByte = AsciiDigitsToBcd(span[offset + 4], span[offset + 5]);
 
 				if (!TryFormatBuildDate(yearByte, monthByte, dayByte, out var buildDate)) {
 					return;
 				}
 
-				// Consume the remaining version characters, stopping at the first non-hex char.
-				// The whole value is capped at MaxFirmwareValueLength chars (date 6 + marker 2 + version).
-				var versionBuilder = new StringBuilder();
-				for (var p = offset + 8; p < data.Length; p++) {
-					var c = (char)span[p];
-					if (!IsHexDigit(c)) {
-						break;
-					}
-
-					if (versionBuilder.Length + 1 > MaxVersionLength) {
-						break;
-					}
-
-					versionBuilder.Append(c);
-				}
-
-				if (versionBuilder.Length == 0) {
+				var markerText = Encoding.ASCII.GetString(span.Slice(offset + BuildDateLength, MarkerLength));
+				if (markerText != "50" && markerText != "70") {
 					return;
 				}
 
-				var version = versionBuilder.ToString();
-				var raw = $"{(char)span[offset]}{(char)span[offset + 1]}{(char)span[offset + 2]}{(char)span[offset + 3]}{(char)span[offset + 4]}{(char)span[offset + 5]}{markerText}{version}";
+				var version = Encoding.ASCII.GetString(span.Slice(offset + BuildDateLength + MarkerLength, VersionLength));
+				var raw = Encoding.ASCII.GetString(span.Slice(offset, FirmwareValueLength));
 				AddCandidate(new FirmwareVersionInfo(offset, raw, buildDate, markerText, version, "ASCII"));
 			}
 
-			for (var offset = 0; offset <= data.Length - 4; offset++) {
-				TryAddBinaryCandidate(offset);
-			}
-
-			for (var offset = 0; offset <= data.Length - 8; offset++) {
+			for (var offset = 0; offset <= data.Length - FirmwareValueLength; offset++) {
 				TryAddAsciiCandidate(offset);
 			}
 
-			return candidates;
+			for (var offset = 0; offset <= data.Length - 6; offset++) {
+				TryAddBinaryCandidate(offset);
+				TryAddReverseBinaryCandidate(offset);
+			}
+
+			return candidates
+				.OrderBy(candidate => GetOffsetPriority(candidate.Offset))
+				.ThenBy(candidate => GetFormatPriority(candidate.StorageFormat))
+				.ThenByDescending(candidate => candidate.BuildDate)
+				.ThenBy(candidate => candidate.Offset)
+				.ToList();
 		}
 
 		public readonly record struct FirmwareVersionInfo(
