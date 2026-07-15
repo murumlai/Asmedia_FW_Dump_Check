@@ -2,14 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-
-  <!-- force 32bit on Windows for native AsmIO interop -->
-  <PropertyGroup Condition="'$(OS)'=='Windows_NT'">
+    <!-- force 32bit for native AsmIO interop -->
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 
