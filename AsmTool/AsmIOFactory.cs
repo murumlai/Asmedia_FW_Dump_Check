@@ -4,7 +4,7 @@ namespace AsmTool
 	public class AsmIOFactory
 	{
 		public static IAsmIO GetAsmIO() {
-			if (OperatingSystem.IsWindows()) {
+			if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
 				return new WindowsAsmIO();
 			}
 
