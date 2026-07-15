@@ -89,7 +89,7 @@ namespace AsmTool
 			return (byte)(((tens - (byte)'0') << 4) | (ones - (byte)'0'));
 		}
 
-		public static List<FirmwareVersionInfo> FindFirmwareVersionCandidates(ReadOnlyMemory<byte> data) {
+		public static List<FirmwareVersionInfo> FindFirmwareVersionCandidates(byte[] data) {
 			var candidates = new List<FirmwareVersionInfo>();
 
 			void AddCandidate(FirmwareVersionInfo candidate) {
@@ -107,13 +107,12 @@ namespace AsmTool
 					return;
 				}
 
-				var span = data.Span;
-				var yearByte = span[offset];
-				var monthByte = span[offset + 1];
-				var dayByte = span[offset + 2];
-				var markerByte = span[offset + 3];
-				var versionByte1 = span[offset + 4];
-				var versionByte2 = span[offset + 5];
+				var yearByte = data[offset];
+				var monthByte = data[offset + 1];
+				var dayByte = data[offset + 2];
+				var markerByte = data[offset + 3];
+				var versionByte1 = data[offset + 4];
+				var versionByte2 = data[offset + 5];
 
 				if (!IsFirmwareMarker(markerByte)) {
 					return;
@@ -134,13 +133,12 @@ namespace AsmTool
 					return;
 				}
 
-				var span = data.Span;
-				var versionByte2 = span[offset];
-				var versionByte1 = span[offset + 1];
-				var markerByte = span[offset + 2];
-				var dayByte = span[offset + 3];
-				var monthByte = span[offset + 4];
-				var yearByte = span[offset + 5];
+				var versionByte2 = data[offset];
+				var versionByte1 = data[offset + 1];
+				var markerByte = data[offset + 2];
+				var dayByte = data[offset + 3];
+				var monthByte = data[offset + 4];
+				var yearByte = data[offset + 5];
 
 				if (!IsFirmwareMarker(markerByte)) {
 					return;
@@ -161,35 +159,33 @@ namespace AsmTool
 					return;
 				}
 
-				var span = data.Span;
-
 				for (var i = 0; i < BuildDateLength + MarkerLength; i++) {
-					if (!IsAsciiDigit(span[offset + i])) {
+					if (!IsAsciiDigit(data[offset + i])) {
 						return;
 					}
 				}
 
 				for (var i = BuildDateLength + MarkerLength; i < FirmwareValueLength; i++) {
-					if (!IsAsciiHexDigit(span[offset + i])) {
+					if (!IsAsciiHexDigit(data[offset + i])) {
 						return;
 					}
 				}
 
-				var yearByte = AsciiDigitsToBcd(span[offset], span[offset + 1]);
-				var monthByte = AsciiDigitsToBcd(span[offset + 2], span[offset + 3]);
-				var dayByte = AsciiDigitsToBcd(span[offset + 4], span[offset + 5]);
+				var yearByte = AsciiDigitsToBcd(data[offset], data[offset + 1]);
+				var monthByte = AsciiDigitsToBcd(data[offset + 2], data[offset + 3]);
+				var dayByte = AsciiDigitsToBcd(data[offset + 4], data[offset + 5]);
 
 				if (!TryFormatBuildDate(yearByte, monthByte, dayByte, out var buildDate)) {
 					return;
 				}
 
-				var markerText = Encoding.ASCII.GetString(span.Slice(offset + BuildDateLength, MarkerLength));
+				var markerText = Encoding.ASCII.GetString(data, offset + BuildDateLength, MarkerLength);
 				if (markerText != "50" && markerText != "70") {
 					return;
 				}
 
-				var version = Encoding.ASCII.GetString(span.Slice(offset + BuildDateLength + MarkerLength, VersionLength));
-				var raw = Encoding.ASCII.GetString(span.Slice(offset, FirmwareValueLength));
+				var version = Encoding.ASCII.GetString(data, offset + BuildDateLength + MarkerLength, VersionLength);
+				var raw = Encoding.ASCII.GetString(data, offset, FirmwareValueLength);
 				AddCandidate(new FirmwareVersionInfo(offset, raw, buildDate, markerText, version, "ASCII"));
 			}
 
@@ -210,13 +206,29 @@ namespace AsmTool
 				.ToList();
 		}
 
-		public readonly record struct FirmwareVersionInfo(
-			int Offset,
-			string RawValue,
-			string BuildDate,
-			string Marker,
-			string Version,
-			string StorageFormat
-		);
+		public readonly struct FirmwareVersionInfo
+		{
+			public int Offset { get; }
+			public string RawValue { get; }
+			public string BuildDate { get; }
+			public string Marker { get; }
+			public string Version { get; }
+			public string StorageFormat { get; }
+
+			public FirmwareVersionInfo(
+				int offset,
+				string rawValue,
+				string buildDate,
+				string marker,
+				string version,
+				string storageFormat) {
+				Offset = offset;
+				RawValue = rawValue;
+				BuildDate = buildDate;
+				Marker = marker;
+				Version = version;
+				StorageFormat = storageFormat;
+			}
+		}
 	}
 }

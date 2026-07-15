@@ -130,7 +130,8 @@ namespace AsmTool
 					return null;
 				}
 
-				BitConverter.TryWriteBytes(firmware.AsSpan((int)offset, 8), qword);
+				var qwordBytes = BitConverter.GetBytes(qword);
+				Buffer.BlockCopy(qwordBytes, 0, firmware, (int)offset, 8);
 			}
 
 			return firmware;
@@ -193,18 +194,19 @@ namespace AsmTool
 
 		public void DumpMemory() {
 			var MEM_SIZE = 128*1024 ;
-			using var fh = new FileStream("mem.bin",
-				FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-			fh.SetLength(0);
+			using (var fh = new FileStream("mem.bin",
+				FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read)) {
+				fh.SetLength(0);
 
-			var wordSize = 4;
-			for (int i = 0; i < MEM_SIZE; i+=wordSize) {
-				var data = ReadMemory((uint)i);
-				if (data != null) {
-					Console.WriteLine("writing");
-					fh.Write(data);
-				} else {
-					break;
+				var wordSize = 4;
+				for (int i = 0; i < MEM_SIZE; i+=wordSize) {
+					var data = ReadMemory((uint)i);
+					if (data != null) {
+						Console.WriteLine("writing");
+						fh.Write(data, 0, data.Length);
+					} else {
+						break;
+					}
 				}
 			}
 		}
